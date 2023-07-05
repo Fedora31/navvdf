@@ -17,14 +17,15 @@ static int fnextentry(char **, Entry *, unsigned int);
  * Create a bare tree.
  */
 int
-vdf_treeinit(Tree *t, unsigned int options)
+vdf_treeinit(Tree *t, char sep, unsigned int options)
 {
 	t->options = options;
 	t->root = malloc(sizeof(Entry));
 	entryinit(NULL, t->root);
-	t->root->type = VDF_DIR;
 	t->root->name = rootname;
 	t->root->val = defval;
+	t->sep[0] = sep;
+	t->sep[1] = '\0';
 	return 0;
 }
 
@@ -33,7 +34,7 @@ vdf_treeinit(Tree *t, unsigned int options)
  * a Tree from it.
  */
 int
-vdf_load(Tree *t, FILE *f, unsigned int options)
+vdf_load(Tree *t, FILE *f, char sep, unsigned int options)
 {
 	unsigned int size;
 	int res;
@@ -57,7 +58,7 @@ vdf_load(Tree *t, FILE *f, unsigned int options)
 
 	/*init the tree, the first parent and child*/
 
-	vdf_treeinit(t, options);
+	vdf_treeinit(t, sep, options);
 	parent = t->root;
 
 	child = malloc(sizeof(Entry));
@@ -93,6 +94,12 @@ vdf_load(Tree *t, FILE *f, unsigned int options)
 	free(child);
 	free(buf);
 	return 0;
+}
+
+int
+vdf_clean(Tree *t)
+{
+	return vdfi_entryclean(t->root);
 }
 
 /*

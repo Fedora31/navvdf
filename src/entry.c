@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "navvdf.h"
+#include "entry.h"
 #include "field.h"
-
+#include "str.h"
 
 /*
  * Inits the Entry struct with proper values.
@@ -12,27 +14,193 @@ void
 entryinit(Entry *parent, Entry *e)
 {
 	e->parent = parent;
-	e->childc = 0;
+	e->childi = 0;
 	e->childm = 0;
 	e->name = NULL;
-	e->val = NULL;
+	e->val = NULL; /*do not free if its a dir*/
 	e->childs = NULL;
 	e->type = VDF_DIR;
 }
 
+int
+vdfi_entrygetid(Entry *e, const char *name)
+{
+	int i;
+	for(i = 0; i < e->childm; i++){
+		if(!e->childs[i])
+			continue;
+		if(strcmp(e->childs[i]->name, name) == 0)
+			return i;
+	}
+	return -1;
+}
+
+int
+vdfi_makedir(Entry *parent, const char *name)
+{
+	Entry *e;
+	int id, size = strlen(name)+1;
+
+	if(size > VDF_BUFSIZE) {size = VDF_BUFSIZE;}
+
+	if((e = malloc(sizeof(Entry))) == NULL)
+		return VDF_COULDNT_MALLOC;
+
+	entryinit(parent, e);
+	if((e->name = malloc(size)) == NULL){
+		entrydel(e);
+		return VDF_COULDNT_MALLOC;
+	}
+	strncpy(e->name, name, size);
+
+	if((id = entryaddto(parent, e)) < 0){
+		entrydel(e);
+		return VDF_CANT_ADD_CHILD_TO_PARENT;
+	}
+
+	return id;
+}
+
+/*
+ * TODO: check for duplicates
+ */
+int
+vdfi_filecreate(Entry *parent, const char *name, const char *val)
+{
+	int size, res;
+	Entry *e;
+
+	if(parent->type == VDF_FILE)
+		return VDF_CD_FROM_FILE;
+
+	if((e = malloc(sizeof(Entry))) == NULL)
+		return VDF_COULDNT_MALLOC;
+
+	entryinit(parent, e);
+	e->type = VDF_FILE;
+
+	size = strlen(name)+1;
+	if(size > VDF_BUFSIZE) {size = VDF_BUFSIZE;}
+	if((e->name = malloc(size)) == NULL){
+		entrydel(e);
+		return VDF_COULDNT_MALLOC;
+	}
+	strncpy(e->name, name, size);
+
+	size = strlen(val)+1;
+	if(size > VDF_BUFSIZE) {size = VDF_BUFSIZE;}
+	if((e->val = malloc(size)) == NULL){
+		entrydel(e);
+		return VDF_COULDNT_MALLOC;
+	}
+	strncpy(e->val, val, size);
+
+	if((res = entryaddto(parent, e)) < 0){
+		entrydel(e);
+		return res;
+	}
+	return 0;
+}
+
 /*
  * Makes the given entry a child of the parent entry.
+ * Returns the index of the directory on success.
  */
 int
 entryaddto(Entry *parent, Entry *child)
 {
-	if(parent->childc >= parent->childm){
+	/*
+	 * This function doesn't reuse freed slots in the parent, this
+	 * makes it so that entries are always added at the end. Like this,
+	 * entries added later don't randomly get added in the middle of
+	 * folders, and it's possible to add entries in the midst of a
+	 * folder parse with vdf_navnext(). The downside is that the slot
+	 * can only grow larger, so it may be good to call vdf_clean()
+	 * after a lot of deletions. (Also, shifting the slots by one after
+	 * a deletion would make it possible to miss entries with
+	 * vdf_navnext().)
+	 */
+
+	void *mem;
+
+	if(parent->type == VDF_FILE)
+		return VDF_CD_FROM_FILE;
+
+	if(parent->childi >= parent->childm){
 		parent->childm += 1;
-		if((parent->childs = realloc(parent->childs, parent->childm * sizeof(Entry**))) == NULL)
-			return -1;
+		if((mem = realloc(parent->childs, parent->childm * sizeof(Entry**))) == NULL)
+			return VDF_COULDNT_MALLOC;
+		parent->childs = mem;
 	}
-	parent->childs[parent->childc++] = child;
+	parent->childs[parent->childi++] = child;
+	child->parent = parent;
+
+	return parent->childi-1;
+}
+
+/*
+ * Regroup the child pointers and resize the slot array.
+ * e.g.:  xx.x..xxx.x -> xxxxxxx.... -> xxxxxxx
+ */
+int
+vdfi_entryclean(Entry *e)
+{
+	int i, a;
+	void *mem;
+
+	if(e->type == VDF_FILE)
+		return 0;
+
+
+	for(i = 0, a = 0; a < e->childm; i++, a++){
+
+		if(!e->childs[i]){
+			for(; !e->childs[a] && a < e->childm; a++);
+			if(a == e->childm)
+				break;
+		}
+
+		if(i != a){
+			e->childs[i] = e->childs[a];
+			e->childs[a] = NULL;
+		}
+
+		if(vdfi_entryclean(e->childs[i]) < 0)
+			return VDF_COULDNT_MALLOC;
+	}
+
+	for(i = 0; i < e->childm; i++)
+		if(!e->childs[i])
+			break;
+
+	if((mem = realloc(e->childs, i * sizeof(Entry**))) == NULL)
+		return VDF_COULDNT_MALLOC;
+
+	e->childs = mem;
+	e->childi = i;
+	e->childm = i;
+
 	return 0;
+}
+
+/*
+ * Calls entrydel() and also removes the child's handle in the parent.
+ */
+void
+vdfi_entrydelchild(Entry *e)
+{
+	int i;
+	Entry *parent = e->parent;
+
+	if(parent == NULL) /*if you tried to rm the root folder...*/
+		return;
+
+	for(i = 0; i < parent->childm; i++)
+		if(parent->childs[i] == e){
+			parent->childs[i] = NULL;
+			entrydel(e);
+			break;
+		}
 }
 
 /*
@@ -43,6 +211,8 @@ void
 entrydel(Entry *e)
 {
 	int i;
+	if(!e)
+		return;
 	if(e->type == VDF_DIR){
 		for(i = 0; i < e->childm; i++)
 			entrydel(e->childs[i]);
@@ -61,6 +231,9 @@ void
 entryprint(Entry *e, int level, FILE *f, unsigned int options)
 {
 	int i;
+
+	if(!e)
+		return;
 
 	PRINTLVL(level, f);
 	fieldprint(e->name, f, options);
