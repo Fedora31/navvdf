@@ -11,4 +11,6 @@ int vdfi_entryclean(Entry *);
 void entrydel(Entry *);
 void vdfi_entrydelchild(Entry *);
 void entryprint(Entry *, int, FILE *, unsigned int);
+int vdfi_entrysetname(Entry *, const char *);
+int vdfi_filesetval(Entry *, const char *);
 

@@ -78,7 +78,7 @@ vdf_load(Tree *t, FILE *f, char sep, unsigned int options)
 			continue;
 		}
 
-		/*printf("%s = %s\n", child->name, child->val);*/
+		printf("%s = %s\n", child->name, child->val);
 
 		if(entryaddto(parent, child) < 0)
 			return VDF_CANT_ADD_CHILD_TO_PARENT;

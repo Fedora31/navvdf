@@ -39,7 +39,7 @@ int
 vdfi_makedir(Entry *parent, const char *name)
 {
 	Entry *e;
-	int id, size = strlen(name)+1;
+	int id, res, size = strlen(name)+1;
 
 	if(size > VDF_BUFSIZE) {size = VDF_BUFSIZE;}
 
@@ -47,9 +47,9 @@ vdfi_makedir(Entry *parent, const char *name)
 		return VDF_COULDNT_MALLOC;
 
 	entryinit(parent, e);
-	if((e->name = malloc(size)) == NULL){
+	if((res = vdfi_entrysetname(e, name)) < 0){
 		entrydel(e);
-		return VDF_COULDNT_MALLOC;
+		return res;
 	}
 	strncpy(e->name, name, size);
 
@@ -61,13 +61,47 @@ vdfi_makedir(Entry *parent, const char *name)
 	return id;
 }
 
+int
+vdfi_entrysetname(Entry *e, const char *name)
+{
+	void *mem;
+	int size = strlen(name)+1;
+
+	if(size > VDF_BUFSIZE)
+		return VDF_NAME_TOO_LONG;
+	if((mem = realloc(e->name, size)) == NULL)
+		return VDF_COULDNT_MALLOC;
+	e->name = mem;
+	strncpy(e->name, name, size);
+
+	return 0;
+}
+
+int
+vdfi_filesetval(Entry *e, const char *val)
+{
+	void *mem;
+	int size = strlen(val)+1;
+
+	if(e->type != VDF_FILE)
+		return VDF_ENTRY_IS_FOLDER;
+	if(size > VDF_BUFSIZE)
+		return VDF_VAL_TOO_LONG;
+	if((mem = realloc(e->val, size)) == NULL)
+		return VDF_COULDNT_MALLOC;
+	e->val = mem;
+	strncpy(e->val, val, size);
+
+	return 0;
+}
+
 /*
  * TODO: check for duplicates
  */
 int
 vdfi_filecreate(Entry *parent, const char *name, const char *val)
 {
-	int size, res;
+	int res;
 	Entry *e;
 
 	if(parent->type == VDF_FILE)
@@ -79,21 +113,15 @@ vdfi_filecreate(Entry *parent, const char *name, const char *val)
 	entryinit(parent, e);
 	e->type = VDF_FILE;
 
-	size = strlen(name)+1;
-	if(size > VDF_BUFSIZE) {size = VDF_BUFSIZE;}
-	if((e->name = malloc(size)) == NULL){
+	if((res = vdfi_entrysetname(e, name)) < 0){
 		entrydel(e);
-		return VDF_COULDNT_MALLOC;
+		return res;
 	}
-	strncpy(e->name, name, size);
 
-	size = strlen(val)+1;
-	if(size > VDF_BUFSIZE) {size = VDF_BUFSIZE;}
-	if((e->val = malloc(size)) == NULL){
+	if((res = vdfi_filesetval(e, val)) < 0){
 		entrydel(e);
-		return VDF_COULDNT_MALLOC;
+		return res;
 	}
-	strncpy(e->val, val, size);
 
 	if((res = entryaddto(parent, e)) < 0){
 		entrydel(e);

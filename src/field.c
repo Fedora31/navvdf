@@ -48,7 +48,9 @@ fieldget(char **p, char **to, unsigned int options)
 		if(stop)
 			break;
 
-		tmp[y++] = c;
+		/*if the field is too large, it will be trunkated*/
+		if(y < VDF_BUFSIZE-1)
+			tmp[y++] = c;
 	}
 	if((*p)[i] == '\0')
 		return -1;
