@@ -126,6 +126,19 @@ vdf_rename(const Vdfpos *o, const char *path, const char *newname)
 	return vdfi_entrysetname(tmpo.curr, newname);
 }
 
+int
+vdf_newval(const Vdfpos *o, const char *path, const char *newval)
+{
+	int res;
+	Vdfpos tmpo;
+	if((res = getposfrompath(o, path, &tmpo)) < 0)
+		return res;
+
+	/*path is OK*/
+
+	return vdfi_filesetval(tmpo.curr, newval);
+}
+
 /*
  * Writes in the given buffer the value of the file
  * pointed to by path. On error, the buffer is not

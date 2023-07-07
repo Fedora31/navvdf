@@ -74,6 +74,7 @@ const char *vdf_nameptr(const Vdfpos *, const char *);
 int vdf_val(const Vdfpos *, const char *, char *);
 const char *vdf_valptr(const Vdfpos *, const char *);
 int vdf_rename(const Vdfpos *, const char *, const char *);
+int vdf_newval(const Vdfpos *, const char *, const char *);
 int vdf_mkdir(const Vdfpos *, const char *);
 int vdf_touch(const Vdfpos *, const char *, const char *);
 int vdf_rm(const Vdfpos *, const char *);
