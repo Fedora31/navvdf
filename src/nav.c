@@ -7,8 +7,8 @@
 #include "field.h"
 #include "entry.h"
 
-static int getposfrompath(const Pos *, const char *, Pos *);
-static int getabsolutepath(const Pos *, const char *, char *);
+static int getposfrompath(const Vdfpos *, const char *, Vdfpos *);
+static int getabsolutepath(const Vdfpos *, const char *, char *);
 
 /***************** H O L Y     S C R I P T U R E S *******************
  * Thou shall always assume first that entries may point to garbage. *
@@ -16,7 +16,7 @@ static int getabsolutepath(const Pos *, const char *, char *);
  *********************************************************************/
 
 void
-vdf_posinit(Pos *o, Tree *t)
+vdf_posinit(Vdfpos *o, Vdftree *t)
 {
 	o->tree = t;
 	o->curr = t->root;
@@ -29,15 +29,15 @@ vdf_posinit(Pos *o, Tree *t)
  * See getposfrompath().
  */
 int
-vdf_nav(const Pos *o, const char *path, Pos *to)
+vdf_nav(const Vdfpos *o, const char *path, Vdfpos *to)
 {
 	return getposfrompath(o, path, to);
 }
 
 int
-vdf_navnext(const Pos *o, int *id, Pos *to)
+vdf_navnext(const Vdfpos *o, int *id, Vdfpos *to)
 {
-	Pos tmpo = *o;
+	Vdfpos tmpo = *o;
 
 	if(*id < 0)
 		return VDF_ID_OUT_OF_BOUNDS;
@@ -66,7 +66,7 @@ vdf_navnext(const Pos *o, int *id, Pos *to)
  * functions where the path has already been checked.
  */
 int
-vdf_getid(const Pos *o, const char *name)
+vdf_getid(const Vdfpos *o, const char *name)
 {
 	if(!vdf_ispathvalid(o, "."))
 		return VDF_PATH_NOT_FOUND;
@@ -82,10 +82,10 @@ vdf_getid(const Pos *o, const char *name)
  * mofified.
  */
 int
-vdf_name(const Pos *o, const char *path, char *buf)
+vdf_name(const Vdfpos *o, const char *path, char *buf)
 {
 	int res;
-	Pos tmpo;
+	Vdfpos tmpo;
 	if((res = getposfrompath(o, path, &tmpo)) < 0)
 		return res;
 
@@ -97,13 +97,27 @@ vdf_name(const Pos *o, const char *path, char *buf)
 }
 
 /*
+ * Returns a pointer to the name pointed to by path.
+ * /!\ Warning: this function is unsafe if you're
+ * modifying and deleting stuff from the Tree!
+ */
+const char *
+vdf_nameptr(const Vdfpos *o, const char *path)
+{
+	Vdfpos tmpo;
+	if(getposfrompath(o, path, &tmpo) < 0)
+		return NULL;
+	return tmpo.curr->name;
+}
+
+/*
  * Rename the entry pointed to by path.
  */
 int
-vdf_rename(const Pos *o, const char *path, const char *newname)
+vdf_rename(const Vdfpos *o, const char *path, const char *newname)
 {
 	int res;
-	Pos tmpo;
+	Vdfpos tmpo;
 	if((res = getposfrompath(o, path, &tmpo)) < 0)
 		return res;
 
@@ -119,10 +133,10 @@ vdf_rename(const Pos *o, const char *path, const char *newname)
  * considered an error.
  */
 int
-vdf_val(const Pos *o, const char *path, char *buf)
+vdf_val(const Vdfpos *o, const char *path, char *buf)
 {
 	int res;
-	Pos tmpo;
+	Vdfpos tmpo;
 	if((res = getposfrompath(o, path, &tmpo)) < 0)
 		return res;
 
@@ -137,12 +151,26 @@ vdf_val(const Pos *o, const char *path, char *buf)
 }
 
 /*
+ * Returns a pointer to the value pointed to by path.
+ * /!\ Warning: this function is unsafe if you're
+ * modifying and deleting stuff from the Tree!
+ */
+const char *
+vdf_valptr(const Vdfpos *o, const char *path)
+{
+	Vdfpos tmpo;
+	if(getposfrompath(o, path, &tmpo) < 0)
+		return NULL;
+	return tmpo.curr->val;
+}
+
+/*
  * Checks if the given relative or absolute path exists.
  */
 int
-vdf_ispathvalid(const Pos *o, const char *path)
+vdf_ispathvalid(const Vdfpos *o, const char *path)
 {
-	Pos dontcare;
+	Vdfpos dontcare;
 	if(getposfrompath(o, path, &dontcare) == 0)
 		return 1;
 	return 0;
@@ -153,12 +181,12 @@ vdf_ispathvalid(const Pos *o, const char *path)
  * TODO: remove all the created directories on error
  */
 int
-vdf_mkdir(const Pos *o, const char *path)
+vdf_mkdir(const Vdfpos *o, const char *path)
 {
-	Pos tmpo = *o;
+	Vdfpos tmpo = *o;
 	char tmp[VDF_PATHSIZE];
 	char *name, *ptr = tmp;
-	Entry *parent = tmpo.tree->root, *new_tree = NULL;
+	Vdfentry *parent = tmpo.tree->root, *new_tree = NULL;
 	int res, id;
 
 	/*Theorically, it's not necessary to check if the path
@@ -190,9 +218,9 @@ vdf_mkdir(const Pos *o, const char *path)
 }
 
 int
-vdf_touch(const Pos *o, const char *path, const char *val)
+vdf_touch(const Vdfpos *o, const char *path, const char *val)
 {
-	Pos tmpo = *o;
+	Vdfpos tmpo = *o;
 	char dirname[VDF_PATHSIZE];
 	const char *basename;
 	char *sep = strrchr(path, o->tree->sep[0]);
@@ -218,9 +246,9 @@ vdf_touch(const Pos *o, const char *path, const char *val)
 }
 
 int
-vdf_rm(const Pos *o, const char *path)
+vdf_rm(const Vdfpos *o, const char *path)
 {
-	Pos tmpo = *o;
+	Vdfpos tmpo = *o;
 	int res;
 
 	if((res = getposfrompath(o, path, &tmpo)) < 0)
@@ -242,7 +270,7 @@ vdf_rm(const Pos *o, const char *path)
  *              ispathvalid() or getposfrompath() for that.
  */
 static int
-getabsolutepath(const Pos *o, const char *relpath, char *to)
+getabsolutepath(const Vdfpos *o, const char *relpath, char *to)
 {
 	char tmp[VDF_PATHSIZE];
 	char *name, *ptr = tmp;
@@ -253,7 +281,7 @@ getabsolutepath(const Pos *o, const char *relpath, char *to)
 	if(tmp[VDF_PATHSIZE-1] != '\0')
 		return VDF_PATH_TOO_LONG;
 
-	/*copy the Pos path over if relpath is not absolute*/
+	/*copy the Vdfpos path over if relpath is not absolute*/
 	if(relpath[0] != o->tree->sep[0]){
 		strncpy(to, o->path, o->pathi);
 		i = o->pathi;
@@ -289,11 +317,11 @@ getabsolutepath(const Pos *o, const char *relpath, char *to)
  * to isn't modified.
  */
 static int
-getposfrompath(const Pos *o, const char *path, Pos *to)
+getposfrompath(const Vdfpos *o, const char *path, Vdfpos *to)
 {
 	char tmp[VDF_PATHSIZE];
 	char *name, *ptr = tmp;
-	Pos tmpo = *o;
+	Vdfpos tmpo = *o;
 	int id;
 
 	tmpo.curr = tmpo.tree->root;
@@ -307,7 +335,7 @@ getposfrompath(const Pos *o, const char *path, Pos *to)
 	 * Going to the found position from the root folder allows to
 	 * detect wrong paths, (e.g. the current entry or a parent folder
 	 * was renamed/deleted). This is important because the original
-	 * Position could point to freed memory. Always assume that it can
+	 * Vdfposition could point to freed memory. Always assume that it can
 	 * be the case (see the HOLY SCRIPTURES).
 	 */
 

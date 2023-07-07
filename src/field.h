@@ -2,5 +2,5 @@
  * requires: stdio.h
  */
 
-int fieldget(char **, char **, unsigned int);
-void fieldprint(char *, FILE *, unsigned int);
+int fieldget(const char **, char **, unsigned int);
+void fieldprint(const char *, FILE *, unsigned int);

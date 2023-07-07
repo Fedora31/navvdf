@@ -10,17 +10,17 @@ static char *defval = "";
 static char *rootname = "root";
 static char *esccomment = "//esc";
 
-static int fnextentry(char **, Entry *, unsigned int);
+static int fnextentry(const char **, Vdfentry *, unsigned int);
 
 
 /*
  * Create a bare tree.
  */
 int
-vdf_treeinit(Tree *t, char sep, unsigned int options)
+vdf_treeinit(Vdftree *t, char sep, unsigned int options)
 {
 	t->options = options;
-	t->root = malloc(sizeof(Entry));
+	t->root = malloc(sizeof(Vdfentry));
 	entryinit(NULL, t->root);
 	t->root->name = rootname;
 	t->root->val = defval;
@@ -29,31 +29,12 @@ vdf_treeinit(Tree *t, char sep, unsigned int options)
 	return 0;
 }
 
-/*
- * Load a VDF tree from a file and create
- * a Tree from it.
- */
 int
-vdf_load(Tree *t, FILE *f, char sep, unsigned int options)
+vdf_load(Vdftree *t, const char *buf, char sep, unsigned int options)
 {
-	unsigned int size;
 	int res;
-	Entry *parent, *child;
-	char *buf, *p;
-
-
-	/*load the content of the file*/
-
-	fseek(f, 0, SEEK_END);
-	size = ftell(f);
-	rewind(f);
-
-	buf = malloc(size+1);
-	if(fread(buf, 1, size, f) < size)
-		return VDF_COULDNT_READ_FILE;
-
-	buf[size] = '\0';
-	p = buf;
+	Vdfentry *parent, *child;
+	const char *p = buf;
 
 
 	/*init the tree, the first parent and child*/
@@ -61,7 +42,7 @@ vdf_load(Tree *t, FILE *f, char sep, unsigned int options)
 	vdf_treeinit(t, sep, options);
 	parent = t->root;
 
-	child = malloc(sizeof(Entry));
+	child = malloc(sizeof(Vdfentry));
 	entryinit(parent, child);
 
 
@@ -78,26 +59,52 @@ vdf_load(Tree *t, FILE *f, char sep, unsigned int options)
 			continue;
 		}
 
-		printf("%s = %s\n", child->name, child->val);
-
 		if(entryaddto(parent, child) < 0)
 			return VDF_CANT_ADD_CHILD_TO_PARENT;
 
 		if(res == VDF_DIR)
 			parent = child;
 
-		if((child = malloc(sizeof(Entry))) == NULL)
+		if((child = malloc(sizeof(Vdfentry))) == NULL)
 			return VDF_COULDNT_CREATE_CHILD;
 		entryinit(parent, child);
 	}
 
 	free(child);
-	free(buf);
 	return 0;
 }
 
+/*
+ * Load a VDF tree from a file and create
+ * a Vdftree from it.
+ */
 int
-vdf_clean(Tree *t)
+vdf_loadf(Vdftree *t, FILE *f, char sep, unsigned int options)
+{
+	unsigned int size;
+	int res;
+	char *buf;
+
+	/*load the content of the file*/
+
+	fseek(f, 0, SEEK_END);
+	size = ftell(f);
+	rewind(f);
+
+	buf = malloc(size+1);
+	if(fread(buf, 1, size, f) < size)
+		return VDF_COULDNT_READ_FILE;
+
+	buf[size] = '\0';
+
+	res = vdf_load(t, buf, sep, options);
+
+	free(buf);
+	return res;
+}
+
+int
+vdf_clean(Vdftree *t)
 {
 	return vdfi_entryclean(t->root);
 }
@@ -106,7 +113,7 @@ vdf_clean(Tree *t)
  * Free all resources used by the given tree.
  */
 void
-vdf_free(Tree *t)
+vdf_free(Vdftree *t)
 {
 	int i;
 	for(i = 0; i < t->root->childm; i++)
@@ -116,7 +123,7 @@ vdf_free(Tree *t)
 }
 
 void
-vdf_print(Tree *t, FILE *f)
+vdf_print(Vdftree *t, FILE *f)
 {
 	int i;
 
@@ -131,15 +138,15 @@ vdf_print(Tree *t, FILE *f)
 
 /*
  * Find and get the values from the next
- * Entry in the buffer pointed to by p, which is
+ * Vdfentry in the buffer pointed to by p, which is
  * modified to point after the found entry.
  * Returns VDF_EOD if it arrived at the end of a
- * directory. In that case, the given Entry struct
+ * directory. In that case, the given Vdfentry struct
  * isn't modified and p is modified to point after
  * the directory (in the parent dir).
  */
 static int
-fnextentry(char **p, Entry *e, unsigned int options)
+fnextentry(const char **p, Vdfentry *e, unsigned int options)
 {
 	/*This code doesn't check for comments between names and values.*/
 

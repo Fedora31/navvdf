@@ -2,15 +2,15 @@
  * requires: stdio.h, navvdf.h
  */
 
-void entryinit(Entry *, Entry *);
-int vdfi_filecreate(Entry *, const char *, const char *);
-int vdfi_makedir(Entry *, const char *);
-int entryaddto(Entry *, Entry *);
-int vdfi_entrygetid(Entry *, const char *);
-int vdfi_entryclean(Entry *);
-void entrydel(Entry *);
-void vdfi_entrydelchild(Entry *);
-void entryprint(Entry *, int, FILE *, unsigned int);
-int vdfi_entrysetname(Entry *, const char *);
-int vdfi_filesetval(Entry *, const char *);
+void entryinit(Vdfentry *, Vdfentry *);
+int vdfi_filecreate(Vdfentry *, const char *, const char *);
+int vdfi_makedir(Vdfentry *, const char *);
+int entryaddto(Vdfentry *, Vdfentry *);
+int vdfi_entrygetid(Vdfentry *, const char *);
+int vdfi_entryclean(Vdfentry *);
+void entrydel(Vdfentry *);
+void vdfi_entrydelchild(Vdfentry *);
+void entryprint(Vdfentry *, int, FILE *, unsigned int);
+int vdfi_entrysetname(Vdfentry *, const char *);
+int vdfi_filesetval(Vdfentry *, const char *);
 

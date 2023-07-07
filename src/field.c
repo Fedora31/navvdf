@@ -16,7 +16,7 @@ static char escseq(char);
  * should not occur).
  */
 int
-fieldget(char **p, char **to, unsigned int options)
+fieldget(const char **p, char **to, unsigned int options)
 {
 	int i, y = 0, stop = 0;
 	char c;
@@ -64,7 +64,7 @@ fieldget(char **p, char **to, unsigned int options)
 }
 
 void
-fieldprint(char *s, FILE *f, unsigned int options)
+fieldprint(const char *s, FILE *f, unsigned int options)
 {
 	int i, quoted = 0;
 

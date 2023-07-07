@@ -8,10 +8,10 @@
 #include "str.h"
 
 /*
- * Inits the Entry struct with proper values.
+ * Inits the Vdfentry struct with proper values.
  */
 void
-entryinit(Entry *parent, Entry *e)
+entryinit(Vdfentry *parent, Vdfentry *e)
 {
 	e->parent = parent;
 	e->childi = 0;
@@ -23,7 +23,7 @@ entryinit(Entry *parent, Entry *e)
 }
 
 int
-vdfi_entrygetid(Entry *e, const char *name)
+vdfi_entrygetid(Vdfentry *e, const char *name)
 {
 	int i;
 	for(i = 0; i < e->childm; i++){
@@ -36,14 +36,14 @@ vdfi_entrygetid(Entry *e, const char *name)
 }
 
 int
-vdfi_makedir(Entry *parent, const char *name)
+vdfi_makedir(Vdfentry *parent, const char *name)
 {
-	Entry *e;
+	Vdfentry *e;
 	int id, res, size = strlen(name)+1;
 
 	if(size > VDF_BUFSIZE) {size = VDF_BUFSIZE;}
 
-	if((e = malloc(sizeof(Entry))) == NULL)
+	if((e = malloc(sizeof(Vdfentry))) == NULL)
 		return VDF_COULDNT_MALLOC;
 
 	entryinit(parent, e);
@@ -62,7 +62,7 @@ vdfi_makedir(Entry *parent, const char *name)
 }
 
 int
-vdfi_entrysetname(Entry *e, const char *name)
+vdfi_entrysetname(Vdfentry *e, const char *name)
 {
 	void *mem;
 	int size = strlen(name)+1;
@@ -78,7 +78,7 @@ vdfi_entrysetname(Entry *e, const char *name)
 }
 
 int
-vdfi_filesetval(Entry *e, const char *val)
+vdfi_filesetval(Vdfentry *e, const char *val)
 {
 	void *mem;
 	int size = strlen(val)+1;
@@ -99,15 +99,15 @@ vdfi_filesetval(Entry *e, const char *val)
  * TODO: check for duplicates
  */
 int
-vdfi_filecreate(Entry *parent, const char *name, const char *val)
+vdfi_filecreate(Vdfentry *parent, const char *name, const char *val)
 {
 	int res;
-	Entry *e;
+	Vdfentry *e;
 
 	if(parent->type == VDF_FILE)
 		return VDF_CD_FROM_FILE;
 
-	if((e = malloc(sizeof(Entry))) == NULL)
+	if((e = malloc(sizeof(Vdfentry))) == NULL)
 		return VDF_COULDNT_MALLOC;
 
 	entryinit(parent, e);
@@ -135,7 +135,7 @@ vdfi_filecreate(Entry *parent, const char *name, const char *val)
  * Returns the index of the directory on success.
  */
 int
-entryaddto(Entry *parent, Entry *child)
+entryaddto(Vdfentry *parent, Vdfentry *child)
 {
 	/*
 	 * This function doesn't reuse freed slots in the parent, this
@@ -156,7 +156,7 @@ entryaddto(Entry *parent, Entry *child)
 
 	if(parent->childi >= parent->childm){
 		parent->childm += 1;
-		if((mem = realloc(parent->childs, parent->childm * sizeof(Entry**))) == NULL)
+		if((mem = realloc(parent->childs, parent->childm * sizeof(Vdfentry**))) == NULL)
 			return VDF_COULDNT_MALLOC;
 		parent->childs = mem;
 	}
@@ -171,7 +171,7 @@ entryaddto(Entry *parent, Entry *child)
  * e.g.:  xx.x..xxx.x -> xxxxxxx.... -> xxxxxxx
  */
 int
-vdfi_entryclean(Entry *e)
+vdfi_entryclean(Vdfentry *e)
 {
 	int i, a;
 	void *mem;
@@ -201,7 +201,7 @@ vdfi_entryclean(Entry *e)
 		if(!e->childs[i])
 			break;
 
-	if((mem = realloc(e->childs, i * sizeof(Entry**))) == NULL)
+	if((mem = realloc(e->childs, i * sizeof(Vdfentry**))) == NULL)
 		return VDF_COULDNT_MALLOC;
 
 	e->childs = mem;
@@ -215,10 +215,10 @@ vdfi_entryclean(Entry *e)
  * Calls entrydel() and also removes the child's handle in the parent.
  */
 void
-vdfi_entrydelchild(Entry *e)
+vdfi_entrydelchild(Vdfentry *e)
 {
 	int i;
-	Entry *parent = e->parent;
+	Vdfentry *parent = e->parent;
 
 	if(parent == NULL) /*if you tried to rm the root folder...*/
 		return;
@@ -236,7 +236,7 @@ vdfi_entrydelchild(Entry *e)
  * possible sub-entries recursively.
  */
 void
-entrydel(Entry *e)
+entrydel(Vdfentry *e)
 {
 	int i;
 	if(!e)
@@ -256,7 +256,7 @@ for(i = 0; i < x; i++)\
 	fputc('\t', f);}
 
 void
-entryprint(Entry *e, int level, FILE *f, unsigned int options)
+entryprint(Vdfentry *e, int level, FILE *f, unsigned int options)
 {
 	int i;
 
