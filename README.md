@@ -11,6 +11,9 @@ easy by treating nodes like files and folders, so you
 `vdf_mkdir()` to create folders. You also navigate between
 directories with `vdf_nav()`.
 
+As this is a personal library, everything is WIP and no support
+is given.
+
 ## Limitations
 
 - The separator between folders can't be used in the name of folders.
@@ -34,5 +37,4 @@ There are 3 objects:
 
 All functions in the library work either on a Tree or on a Pos.
 
-Read the source and the comments for a better understanding. No
-support given.
+Read the source and the comments for a better understanding.
