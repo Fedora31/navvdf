@@ -80,3 +80,8 @@ int vdf_touch(const Vdfpos *, const char *, const char *);
 int vdf_rm(const Vdfpos *, const char *);
 void vdf_print(Vdftree *, FILE *);
 int vdf_ispathvalid(const Vdfpos *, const char *);
+
+/*Below are functions that don't exist, but could be useful to implement.*/
+
+int vdf_copy(Vdfpos *, const char *, const char *); /*behaves like cp -R*/
+int vdf_merge(Vdftree *, const Vdftree *); /*merge one tree with another, overriding values if the need arises*/
