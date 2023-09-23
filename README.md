@@ -1,3 +1,5 @@
+## This project has moved to <https://pevhs.ch/software/>. This repository will not be updated again.
+
 # navvdf
 
 This is a personal library whose purpose is to read, load and write
